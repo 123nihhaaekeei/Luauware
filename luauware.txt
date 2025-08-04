@@ -1,0 +1,1092 @@
+for a, b in pairs(getgc(true)) do
+    if typeof(b) == "table" then
+        setreadonly(b, false)
+        local c = rawget(b, "indexInstance")
+        if typeof(c) == "table" and c[1] == "kick" then
+            setreadonly(c, false)
+            rawset(b, "Table", {
+                "kick", function() coroutine.yield() end
+            })
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "★彡 [ kawaii info from zai ] 彡★";
+                Text = "hi hey zais bypasser just bypassed adonis ❤️ (ts like 5 lines bro stop coding if u actually take long to make this shitttty code UGAHC7PQ8HPQJVA8ÅVUQOPJVQ8ÅJVIQVPIPVJQIÖCHQHIPCQLUGQÖG7QL7XGQÖ7HCWH7LCH7ÖCWGÖ 8QB7OGCWVDG7IWVGOF7W7OFWO7GBFLGIBQBGIÖF)";
+                Duration = 5;
+            })
+            break
+        end
+    end
+end
+
+--// luauware source below $$$$
+getgenv().luauware = {
+    aimpart = "UpperTorso",
+    targetaim = false,
+    antigroundshoot = false,
+    resolver = false,
+    aimmethod = "Namecall",
+    bulletteleport = {
+        enabled = false,
+        value = 50
+    },
+    camlock = {
+        enabled = true,
+        smoothenabled = true,
+        smoothness = 1
+    },
+    prediction = {
+        autopred = false,
+        value = 0.2,
+        jumpoffset = 0.08
+    },
+    autoair = {
+        enabled = true,
+        delay = 0.2
+    },
+    autoshoot = {
+        enabled = false
+    },
+    fly = {
+        enabled = false,
+        speed = 50
+    },
+    walkspeed = {
+        enabled = false,
+        value = 16
+    },
+    jumppower = {
+        enabled = false,
+        value = 50
+    },
+    esp = {
+        enabled = false,
+        boxcolor = Color3.new(1, 1, 1),
+        boxenabled = true,
+        nameenabled = true,
+        namecolor = Color3.new(1, 1, 1),
+        font = 2,
+        fontsize = 10,
+        distanceenabled = true,
+        distancecolor = Color3.new(1, 1, 1),
+        tracerenabled = true,
+        tracercolor = Color3.new(1, 1, 1),
+        tracermode = "From Bottom",
+        healthbar = true,
+        healthbarcolor = Color3.new(0, 1, 0)
+    },
+    cframe = {
+        enabled = false,
+        value = 1
+    },
+    csync = {
+        enabled = false,
+        type = "Orbit",
+        distance = 5,
+        height = 0,
+        speed = 1,
+        randomamount = 3
+    }
+}
+
+local repo = "https://raw.githubusercontent.com/67mangofruitphonk/Elysian/main/"
+local library = loadstring(game:HttpGet(repo .. "Library.lua"))()
+local thememanager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
+local savemanager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
+local notify = loadstring(game:HttpGet("https://raw.githubusercontent.com/laagginq/ui-libraries/main/dxhooknotify/src.lua", true))()
+
+local luauware = getgenv().luauware
+local players = game:GetService("Players")
+local runservice = game:GetService("RunService")
+local localplayer = players.LocalPlayer
+local camera = workspace.CurrentCamera
+local mouse = localplayer:GetMouse()
+local originalcframe = camera.CFrame
+local target = nil
+local connection = nil
+local originalgrips = {}
+
+local function getclosesttarget()
+    local closestplayer = nil
+    local closestdistance = math.huge
+    local screencenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+    for _, player in ipairs(players:GetPlayers()) do
+        if player ~= localplayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local rootpart = player.Character.HumanoidRootPart
+            local position, onscreen = camera:WorldToViewportPoint(rootpart.Position)
+            if onscreen then
+                local distance = (screencenter - Vector2.new(position.X, position.Y)).Magnitude
+                if distance < closestdistance then
+                    closestplayer = player
+                    closestdistance = distance
+                end
+            end
+        end
+    end
+    return closestplayer
+end
+
+local function recalculatevelocity(character)
+    if not luauware.resolver then return Vector3.zero end
+    local pos = character.HumanoidRootPart.Position
+    local ticktime = tick()
+    task.wait(0.1)
+    local newpos = character.HumanoidRootPart.Position
+    local newtick = tick()
+    local delta = newtick - ticktime
+    local positiondiff = newpos - pos
+    return positiondiff / delta
+end
+
+local function autoshoot()
+    if target and target.Character and luauware.autoshoot.enabled then
+        local character = localplayer.Character
+        if character and not target.Character:FindFirstChildOfClass("ForceField") then
+            local bodyeffects = target.Character:FindFirstChild("BodyEffects")
+            if bodyeffects and bodyeffects:FindFirstChild("K.O") and bodyeffects["K.O"].Value then
+                return
+            end
+            local tool = character:FindFirstChildOfClass("Tool")
+            if tool and tool:IsA("Tool") then
+                tool:Activate()
+            end
+        end
+    end
+end
+
+local screengui = Instance.new("ScreenGui")
+screengui.Parent = localplayer.PlayerGui
+screengui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local frame = Instance.new("Frame")
+frame.Parent = screengui
+frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+frame.BackgroundTransparency = 0.5
+frame.Position = UDim2.new(1, -100, 0, 10)
+frame.Size = UDim2.new(0, 90, 0, 50)
+
+local textbutton = Instance.new("TextButton")
+textbutton.Parent = frame
+textbutton.BackgroundTransparency = 1
+textbutton.Size = UDim2.new(1, 0, 1, 0)
+textbutton.Font = Enum.Font.Code
+textbutton.Text = "LuauWare"
+textbutton.TextColor3 = Color3.fromRGB(255, 255, 255)
+textbutton.TextScaled = true
+textbutton.TextSize = 30
+textbutton.TextStrokeTransparency = 0
+textbutton.MouseButton1Down:Connect(function()
+    library:Toggle()
+end)
+
+local textsizeconstraint = Instance.new("UITextSizeConstraint")
+textsizeconstraint.Parent = textbutton
+textsizeconstraint.MaxTextSize = 30
+
+local function oncharacteradded(character)
+    screengui.Parent = localplayer.PlayerGui
+    if luauware.fly.enabled then
+        character:WaitForChild("Humanoid").PlatformStand = true
+    end
+end
+localplayer.CharacterAdded:Connect(oncharacteradded)
+localplayer.CharacterRemoving:Connect(function()
+    screengui.Parent = nil
+end)
+
+local lockbutton = Instance.new("TextButton")
+lockbutton.Text = "Lock"
+lockbutton.TextSize = 25
+lockbutton.TextColor3 = Color3.new(1, 1, 1)
+lockbutton.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+lockbutton.BorderColor3 = Color3.new(1, 0, 0)
+lockbutton.BorderSizePixel = 4
+lockbutton.BackgroundTransparency = 1
+lockbutton.Font = Enum.Font.Code
+lockbutton.Size = UDim2.new(0.2, 0, 0.2, 0)
+lockbutton.Position = UDim2.new(0, 10, 0.3, 10)
+lockbutton.Parent = screengui
+lockbutton.Draggable = true
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 5)
+corner.Parent = lockbutton
+
+local autoairbutton = Instance.new("TextButton")
+autoairbutton.Text = "AutoAir"
+autoairbutton.TextSize = 25
+autoairbutton.TextColor3 = Color3.new(1, 1, 1)
+autoairbutton.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+autoairbutton.BorderColor3 = Color3.new(1, 0, 0)
+autoairbutton.BorderSizePixel = 4
+autoairbutton.BackgroundTransparency = 1
+autoairbutton.Font = Enum.Font.Code
+autoairbutton.Size = UDim2.new(0.2, 0, 0.2, 0)
+autoairbutton.Position = UDim2.new(0, 10, 0.5, 10)
+autoairbutton.Parent = screengui
+autoairbutton.Draggable = true
+local cornerair = Instance.new("UICorner")
+cornerair.CornerRadius = UDim.new(0, 5)
+cornerair.Parent = autoairbutton
+
+local cframebutton = Instance.new("TextButton")
+cframebutton.Text = "CFrame"
+cframebutton.TextSize = 25
+cframebutton.TextColor3 = Color3.new(1, 1, 1)
+cframebutton.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+cframebutton.BorderColor3 = Color3.new(1, 0, 0)
+cframebutton.BorderSizePixel = 4
+cframebutton.BackgroundTransparency = 1
+cframebutton.Font = Enum.Font.Code
+cframebutton.Size = UDim2.new(0.2, 0, 0.2, 0)
+cframebutton.Position = UDim2.new(0, 10, 0.7, 10)
+cframebutton.Parent = screengui
+cframebutton.Draggable = true
+local cornercframe = Instance.new("UICorner")
+cornercframe.CornerRadius = UDim.new(0, 5)
+cornercframe.Parent = cframebutton
+
+lockbutton.MouseButton1Click:Connect(function()
+    luauware.targetaim = not luauware.targetaim
+    lockbutton.TextColor3 = luauware.targetaim and Color3.new(0, 1, 0) or Color3.new(1, 1, 1)
+    if luauware.targetaim then
+        target = getclosesttarget()
+        if target then
+            connection = runservice.Heartbeat:Connect(function(deltatime)
+                if luauware.targetaim and target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                    local character = target.Character
+                    local velocity = recalculatevelocity(character)
+                    local targetposition
+                    if character.Humanoid.FloorMaterial == Enum.Material.Air then
+                        local part = character:FindFirstChild(luauware.aimpart) or character.Head
+                        targetposition = part.Position + Vector3.new(0, luauware.prediction.jumpoffset, 0)
+                    else
+                        targetposition = character.Head.Position
+                    end
+                    local predictionvalue = luauware.prediction.value
+                    local targetcframe = CFrame.new(camera.CFrame.p, targetposition + (velocity * predictionvalue))
+                    if targetcframe.Y < 0 and luauware.antigroundshoot then
+                        targetcframe = CFrame.new(targetcframe.p * Vector3.new(1, 0, 1))
+                    end
+                    if luauware.camlock.enabled then
+                        if luauware.camlock.smoothenabled then
+                            camera.CFrame = camera.CFrame:Lerp(targetcframe, luauware.camlock.smoothness)
+                        else
+                            camera.CFrame = targetcframe
+                        end
+                    end
+                end
+            end)
+        end
+    else
+        if connection then
+            connection:Disconnect()
+        end
+        target = nil
+    end
+end)
+
+autoairbutton.MouseButton1Click:Connect(function()
+    luauware.autoair.enabled = not luauware.autoair.enabled
+    autoairbutton.TextColor3 = luauware.autoair.enabled and Color3.new(0, 1, 0) or Color3.new(1, 1, 1)
+end)
+
+cframebutton.MouseButton1Click:Connect(function()
+    luauware.cframe.enabled = not luauware.cframe.enabled
+    cframebutton.TextColor3 = luauware.cframe.enabled and Color3.new(0, 1, 0) or Color3.new(1, 1, 1)
+end)
+
+local function gettargetposition()
+    if not target or not target.Character or not target.Character.HumanoidRootPart then return Vector3.zero end
+    local velocity = recalculatevelocity(target.Character)
+    local predictionvalue = luauware.prediction.value
+    local targetposition = target.Character.HumanoidRootPart.Position + (velocity * predictionvalue)
+    if targetposition.Y < 0 and luauware.antigroundshoot then
+        targetposition = Vector3.new(targetposition.X, 0, targetposition.Z)
+    end
+    return targetposition
+end
+
+local function getnewframe()
+    local targetposition = gettargetposition()
+    if luauware.csync.type == "Random" then
+        return CFrame.new(
+            targetposition + Vector3.new(
+                math.random(-luauware.csync.randomamount, luauware.csync.randomamount),
+                math.random(0, luauware.csync.randomamount),
+                math.random(-luauware.csync.randomamount, luauware.csync.randomamount)
+            )
+        ) * CFrame.Angles(
+            math.rad(math.random(0, 360)),
+            math.rad(math.random(0, 360)),
+            math.rad(math.random(0, 360))
+        )
+    elseif luauware.csync.type == "Orbit" then
+        local currenttime = tick()
+        return CFrame.new(targetposition) *
+            CFrame.Angles(0, 2 * math.pi * currenttime * luauware.csync.speed % (2 * math.pi), 0) *
+            CFrame.new(0, luauware.csync.height, luauware.csync.distance)
+    elseif luauware.csync.type == "Spiral" then
+        local currenttime = tick()
+        local angle = 2 * math.pi * currenttime * luauware.csync.speed % (2 * math.pi)
+        local spiralradius = luauware.csync.distance + math.sin(currenttime) * luauware.csync.randomamount
+        return CFrame.new(targetposition) *
+            CFrame.Angles(0, angle, 0) *
+            CFrame.new(spiralradius, luauware.csync.height, 0)
+    elseif luauware.csync.type == "Spherical" then
+        local currenttime = tick()
+        local radius = luauware.csync.distance
+        local sphericalx = radius * math.sin(currenttime) * math.cos(currenttime * luauware.csync.speed)
+        local sphericaly = radius * math.sin(currenttime) * math.sin(currenttime * luauware.csync.speed)
+        local sphericalz = radius * math.cos(currenttime)
+        return CFrame.new(targetposition + Vector3.new(sphericalx, sphericaly, sphericalz))
+    elseif luauware.csync.type == "Attach" then
+        return CFrame.new(targetposition)
+    end
+end
+
+local function managefly(character, enable)
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    local rootpart = character:FindFirstChild(luauware.aimpart) or character:FindFirstChild("HumanoidRootPart")
+    if not humanoid or not rootpart then return end
+    if enable then
+        humanoid.PlatformStand = true
+        for _, track in pairs(humanoid:GetPlayingAnimationTracks()) do
+            track:AdjustSpeed(0)
+        end
+        character.Animate.Disabled = true
+        local bodygyro = Instance.new("BodyGyro", rootpart)
+        bodygyro.P = 9e4
+        bodygyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+        bodygyro.CFrame = rootpart.CFrame
+        local bodyvelocity = Instance.new("BodyVelocity", rootpart)
+        bodyvelocity.Velocity = Vector3.new(0, 0.1, 0)
+        bodyvelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        local ctrl = {f = 0, b = 0, l = 0, r = 0}
+        local lastctrl = {f = 0, b = 0, l = 0, r = 0}
+        local speed = 0
+        local maxspeed = luauware.fly.speed
+        local connection
+        connection = runservice.RenderStepped:Connect(function()
+            if not luauware.fly.enabled or humanoid.Health <= 0 then
+                bodygyro:Destroy()
+                bodyvelocity:Destroy()
+                humanoid.PlatformStand = false
+                character.Animate.Disabled = false
+                connection:Disconnect()
+                return
+            end
+            if ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0 then
+                speed = speed + 0.5 + (speed / maxspeed)
+                if speed > maxspeed then
+                    speed = maxspeed
+                end
+            elseif speed ~= 0 then
+                speed = speed - 1
+                if speed < 0 then
+                    speed = 0
+                end
+            end
+            if ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0 then
+                bodyvelocity.Velocity = ((camera.CFrame.lookVector * (ctrl.f + ctrl.b)) + ((camera.CFrame * CFrame.new(ctrl.l + ctrl.r, (ctrl.f + ctrl.b) * 0.2, 0).p) - camera.CFrame.p)) * speed
+                lastctrl = {f = ctrl.f, b = ctrl.b, l = ctrl.l, r = ctrl.r}
+            elseif speed ~= 0 then
+                bodyvelocity.Velocity = ((camera.CFrame.lookVector * (lastctrl.f + lastctrl.b)) + ((camera.CFrame * CFrame.new(lastctrl.l + lastctrl.r, (lastctrl.f + lastctrl.b) * 0.2, 0).p) - camera.CFrame.p)) * speed
+            else
+                bodyvelocity.Velocity = Vector3.new(0, 0, 0)
+            end
+            bodygyro.CFrame = camera.CFrame * CFrame.Angles(-math.rad((ctrl.f + ctrl.b) * 50 * speed / maxspeed), 0, 0)
+        end)
+        game:GetService("UserInputService").InputBegan:Connect(function(input)
+            if input.KeyCode == Enum.KeyCode.W then ctrl.f = 1 end
+            if input.KeyCode == Enum.KeyCode.S then ctrl.b = -1 end
+            if input.KeyCode == Enum.KeyCode.A then ctrl.l = -1 end
+            if input.KeyCode == Enum.KeyCode.D then ctrl.r = 1 end
+        end)
+        game:GetService("UserInputService").InputEnded:Connect(function(input)
+            if input.KeyCode == Enum.KeyCode.W then ctrl.f = 0 end
+            if input.KeyCode == Enum.KeyCode.S then ctrl.b = 0 end
+            if input.KeyCode == Enum.KeyCode.A then ctrl.l = 0 end
+            if input.KeyCode == Enum.KeyCode.D then ctrl.r = 0 end
+        end)
+    else
+        humanoid.PlatformStand = false
+        character.Animate.Disabled = false
+        for _, obj in pairs(rootpart:GetChildren()) do
+            if obj:IsA("BodyGyro") or obj:IsA("BodyVelocity") then
+                obj:Destroy()
+            end
+        end
+    end
+end
+
+runservice.Heartbeat:Connect(function()
+    if luauware.autoair.enabled and target and target.Character then
+        local rootpart = target.Character:FindFirstChild("HumanoidRootPart")
+        if rootpart then
+            local humanoid = target.Character.Humanoid
+            if humanoid and (humanoid:GetState() == Enum.HumanoidStateType.Jumping or humanoid:GetState() == Enum.HumanoidStateType.Freefall) then
+                local character = localplayer.Character
+                if character then
+                    local tool = character:FindFirstChildOfClass("Tool")
+                    if tool then
+                        tool:Activate()
+                    end
+                end
+            end
+        end
+    end
+    if luauware.autoshoot.enabled then
+        autoshoot()
+    end
+    if luauware.cframe.enabled then
+        pcall(function()
+            local character = localplayer.Character
+            if character and character.HumanoidRootPart then
+                character.HumanoidRootPart.CFrame = character.HumanoidRootPart.CFrame + (character.Humanoid.MoveDirection * luauware.cframe.value)
+            end
+        end)
+    end
+    if luauware.csync.enabled and target and target.Character and target.Character.HumanoidRootPart then
+        local root = localplayer.Character.HumanoidRootPart
+        root.CFrame = getnewframe()
+    end
+    if luauware.bulletteleport.enabled then
+        pcall(function()
+            local character = localplayer.Character
+            if character then
+                local tool = character:FindFirstChildOfClass("Tool")
+                if tool and tool:IsA("Tool") then
+                    if not originalgrips[tool] then
+                        originalgrips[tool] = tool.Grip
+                    end
+                    tool.Grip = CFrame.new(Vector3.new(0, 0, -luauware.bulletteleport.value))
+                end
+            end
+        end)
+    else
+        pcall(function()
+            local character = localplayer.Character
+            if character then
+                local tool = character:FindFirstChildOfClass("Tool")
+                if tool and originalgrips[tool] then
+                    tool.Grip = originalgrips[tool]
+                    originalgrips[tool] = nil
+                end
+            end
+        end)
+    end
+    if luauware.walkspeed.enabled then
+        pcall(function()
+            local character = localplayer.Character
+            if character and character.Humanoid then
+                character.Humanoid.WalkSpeed = luauware.walkspeed.value
+            end
+        end)
+    else
+        pcall(function()
+            local character = localplayer.Character
+            if character and character.Humanoid then
+                character.Humanoid.WalkSpeed = 16
+            end
+        end)
+    end
+    if luauware.jumppower.enabled then
+        pcall(function()
+            local character = localplayer.Character
+            if character and character.Humanoid then
+                character.Humanoid.JumpPower = luauware.jumppower.value
+                character.Humanoid.UseJumpPower = true
+            end
+        end)
+    else
+        pcall(function()
+            local character = localplayer.Character
+            if character and character.Humanoid then
+                character.Humanoid.JumpPower = 50
+                character.Humanoid.UseJumpPower = true
+            end
+        end)
+    end
+end)
+
+local mt = getrawmetatable(game)
+local oldnamecall = mt.__namecall
+local oldindex = mt.__index
+setreadonly(mt, false)
+
+local function adjustvector(arg)
+    if typeof(arg) == "table" then
+        for key, value in pairs(arg) do
+            if typeof(value) == "table" then
+                adjustvector(value)
+            elseif typeof(value) == "Vector3" and target and target.Character and target.Character.HumanoidRootPart then
+                arg[key] = gettargetposition()
+            end
+        end
+    elseif typeof(arg) == "Vector3" and target and target.Character and target.Character.HumanoidRootPart then
+        return gettargetposition()
+    end
+    return arg
+end
+
+mt.__namecall = newcclosure(function(self, ...)
+    local args = {...}
+    local method = getnamecallmethod()
+    if luauware.targetaim and target and method == "FireServer" and luauware.aimmethod == "Namecall" then
+        for i, arg in ipairs(args) do
+            if typeof(arg) == "Vector3" or typeof(arg) == "table" then
+                args[i] = adjustvector(arg)
+            end
+        end
+    end
+    return oldnamecall(self, unpack(args))
+end)
+
+mt.__index = newcclosure(function(self, key)
+    if luauware.targetaim and target and (key == "Hit" or key == "hit") and luauware.aimmethod == "Index" then
+        if target.Character and target.Character.HumanoidRootPart then
+            return CFrame.new(gettargetposition())
+        end
+    end
+    return oldindex(self, key)
+end)
+
+setreadonly(mt, true)
+
+local function newline(thickness, color)
+    local line = Drawing.new("Line")
+    line.Thickness = thickness
+    line.Color = color
+    line.Transparency = 1
+    line.Visible = false
+    return line
+end
+
+local function newtext(color, size, font)
+    local text = Drawing.new("Text")
+    text.Color = color
+    text.Size = size
+    text.Font = font
+    text.Outline = true
+    text.OutlineColor = Color3.fromRGB(0, 0, 0)
+    text.Visible = false
+    return text
+end
+
+local function newquad(color, filled)
+    local quad = Drawing.new("Quad")
+    quad.Thickness = 1
+    quad.Color = color
+    quad.Filled = filled
+    quad.Transparency = filled and 0.7 or 0.5
+    quad.Visible = false
+    return quad
+end
+
+local function createesp(player)
+    local quad = newquad(luauware.esp.boxcolor, false)
+    local tracer = newline(1, luauware.esp.tracercolor)
+    local name = newtext(luauware.esp.namecolor, luauware.esp.fontsize, luauware.esp.font)
+    local distance = newtext(luauware.esp.distancecolor, luauware.esp.fontsize, luauware.esp.font)
+    local healthbar = newquad(luauware.esp.healthbarcolor, true)
+    return { quad = quad, tracer = tracer, name = name, distance = distance, healthbar = healthbar }
+end
+
+local function updateesp(components, player)
+    if not luauware.esp.enabled then
+        components.quad.Visible = false
+        components.tracer.Visible = false
+        components.name.Visible = false
+        components.distance.Visible = false
+        components.healthbar.Visible = false
+        return
+    end
+    if player.Character and player.Character.HumanoidRootPart and player.Character.Humanoid then
+        local rootpos = player.Character.HumanoidRootPart.Position
+        local distance = (rootpos - localplayer.Character.HumanoidRootPart.Position).Magnitude
+        local rootscreenpos, onscreen = camera:WorldToViewportPoint(rootpos)
+        if onscreen then
+            local headpos = camera:WorldToViewportPoint(player.Character.Head.Position)
+            local legpos = camera:WorldToViewportPoint(rootpos - Vector3.new(0, 3, 0))
+            local boxheight = (headpos - legpos).Magnitude * 1.5
+            local boxwidth = boxheight / 2 * 1.3
+            if luauware.esp.boxenabled then
+                components.quad.PointA = Vector2.new(rootscreenpos.X - boxwidth / 2, rootscreenpos.Y - boxheight / 2)
+                components.quad.PointB = Vector2.new(rootscreenpos.X + boxwidth / 2, rootscreenpos.Y - boxheight / 2)
+                components.quad.PointC = Vector2.new(rootscreenpos.X + boxwidth / 2, rootscreenpos.Y + boxheight / 2)
+                components.quad.PointD = Vector2.new(rootscreenpos.X - boxwidth / 2, rootscreenpos.Y + boxheight / 2)
+                components.quad.Color = luauware.esp.boxcolor
+                components.quad.Visible = true
+            else
+                components.quad.Visible = false
+            end
+            if luauware.esp.tracerenabled then
+                local from
+                if luauware.esp.tracermode == "From Bottom" then
+                    from = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
+                else
+                    from = Vector2.new(mouse.X, mouse.Y)
+                end
+                components.tracer.From = from
+                components.tracer.To = Vector2.new(rootscreenpos.X, rootscreenpos.Y + boxheight / 2)
+                components.tracer.Color = luauware.esp.tracercolor
+                components.tracer.Visible = true
+            else
+                components.tracer.Visible = false
+            end
+            if luauware.esp.nameenabled then
+                components.name.Position = Vector2.new(rootscreenpos.X, rootscreenpos.Y - boxheight / 2 - 15)
+                components.name.Text = player.Name
+                components.name.Color = luauware.esp.namecolor
+                components.name.Visible = true
+            else
+                components.name.Visible = false
+            end
+            if luauware.esp.distanceenabled then
+                components.distance.Position = Vector2.new(rootscreenpos.X, rootscreenpos.Y + boxheight / 2 + 5)
+                components.distance.Text = string.format("%.1f studs", distance)
+                components.distance.Color = luauware.esp.distancecolor
+                components.distance.Visible = true
+            else
+                components.distance.Visible = false
+            end
+            if luauware.esp.healthbar then
+                local health = player.Character.Humanoid.Health / player.Character.Humanoid.MaxHealth
+                components.healthbar.PointA = Vector2.new(rootscreenpos.X - boxwidth / 2 - 8, rootscreenpos.Y - boxheight / 2)
+                components.healthbar.PointB = Vector2.new(rootscreenpos.X - boxwidth / 2 - 8, rootscreenpos.Y - boxheight / 2 + boxheight * health)
+                components.healthbar.PointC = Vector2.new(rootscreenpos.X - boxwidth / 2 - 4, rootscreenpos.Y - boxheight / 2 + boxheight * health)
+                components.healthbar.PointD = Vector2.new(rootscreenpos.X - boxwidth / 2 - 4, rootscreenpos.Y - boxheight / 2)
+                components.healthbar.Color = luauware.esp.healthbarcolor
+                components.healthbar.Visible = true
+            else
+                components.healthbar.Visible = false
+            end
+        else
+            components.quad.Visible = false
+            components.tracer.Visible = false
+            components.name.Visible = false
+            components.distance.Visible = false
+            components.healthbar.Visible = false
+        end
+    else
+        components.quad.Visible = false
+        components.tracer.Visible = false
+        components.name.Visible = false
+        components.distance.Visible = false
+        components.healthbar.Visible = false
+    end
+end
+
+for _, player in ipairs(players:GetPlayers()) do
+    if player ~= localplayer then
+        local components = createesp(player)
+        runservice.RenderStepped:Connect(function()
+            updateesp(components, player)
+        end)
+    end
+end
+
+players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        if player ~= localplayer then
+            local components = createesp(player)
+            runservice.RenderStepped:Connect(function()
+                updateesp(components, player)
+            end)
+        end
+    end)
+end)
+
+players.PlayerRemoving:Connect(function(player)
+    if player.Character then
+        for _, component in pairs(player.Character:GetChildren()) do
+            if component:IsA("Drawing") then
+                component:Remove()
+            end
+        end
+    end
+end)
+
+localplayer.CharacterAdded:Connect(function(character)
+    task.wait(0.7)
+    if character then
+        character:WaitForChild("Humanoid").PlatformStand = false
+        character.Animate.Disabled = false
+        if luauware.fly.enabled then
+            managefly(character, true)
+        end
+    end
+end)
+
+local window = library:CreateWindow({
+    Title = "LuauWare",
+    Center = true,
+    AutoShow = true,
+    TabPadding = 10,
+    MenuFadeTime = 0.2,
+    Footer = "2.0.0",
+    Size = UDim2.fromOffset(600, 500)
+})
+
+local tabs = {
+    main = window:AddTab("Main", "crosshair"),
+    visuals = window:AddTab("Visuals", "eye"),
+    misc = window:AddTab("Miscellaneous", "wrench"),
+    settings = window:AddTab("Settings", "settings")
+}
+
+local aimgroup = tabs.main:AddLeftGroupbox("Target Aim")
+aimgroup:AddToggle("targetaim", {
+    Text = "Enable Target Aim",
+    Default = luauware.targetaim,
+    Callback = function(state)
+        luauware.targetaim = state
+    end
+})
+aimgroup:AddToggle("resolver", {
+    Text = "Enable Resolver",
+    Default = luauware.resolver,
+    Callback = function(state)
+        luauware.resolver = state
+    end
+})
+aimgroup:AddDropdown("aimmethod", {
+    Values = { "Namecall", "Index" },
+    Default = luauware.aimmethod,
+    Text = "Aim Method",
+    Callback = function(val)
+        luauware.aimmethod = val
+    end
+})
+aimgroup:AddInput("prediction", {
+    Text = "Prediction",
+    Default = tostring(luauware.prediction.value),
+    Numeric = true,
+    Finished = true,
+    Callback = function(val)
+        local num = tonumber(val)
+        if num then
+            luauware.prediction.value = num
+        end
+    end
+})
+aimgroup:AddInput("jumpoffset", {
+    Text = "Jump Offset",
+    Default = tostring(luauware.prediction.jumpoffset),
+    Numeric = true,
+    Finished = true,
+    Callback = function(val)
+        local num = tonumber(val)
+        if num then
+            luauware.prediction.jumpoffset = num
+        end
+    end
+})
+aimgroup:AddDropdown("targetpart", {
+    Values = { "Head", "HumanoidRootPart", "Torso", "UpperTorso" },
+    Default = luauware.aimpart,
+    Text = "Target Part",
+    Callback = function(val)
+        luauware.aimpart = val
+    end
+})
+
+local camgroup = tabs.main:AddRightGroupbox("Camlock")
+camgroup:AddToggle("camlock", {
+    Text = "Enable Camlock",
+    Default = luauware.camlock.enabled,
+    Callback = function(state)
+        luauware.camlock.enabled = state
+        if not state then
+            target = nil
+        end
+    end
+})
+camgroup:AddInput("smoothness", {
+    Text = "Smoothness",
+    Default = tostring(luauware.camlock.smoothness),
+    Numeric = true,
+    Finished = true,
+    Callback = function(val)
+        local num = tonumber(val)
+        if num then
+            luauware.camlock.smoothness = math.clamp(num, 0.01, 1)
+        end
+    end
+})
+camgroup:AddDropdown("camlockpart", {
+    Values = { "Head", "HumanoidRootPart", "Torso", "UpperTorso" },
+    Default = luauware.aimpart,
+    Text = "Camlock Aim Part",
+    Callback = function(val)
+        luauware.aimpart = val
+    end
+})
+
+local espgroup = tabs.visuals:AddLeftGroupbox("ESP Settings")
+espgroup:AddToggle("espenabled", {
+    Text = "Enable ESP",
+    Default = luauware.esp.enabled,
+    Callback = function(state)
+        luauware.esp.enabled = state
+    end
+})
+espgroup:AddToggle("boxenabled", {
+    Text = "Box ESP",
+    Default = luauware.esp.boxenabled,
+    Callback = function(state)
+        luauware.esp.boxenabled = state
+    end
+}):AddColorPicker("boxcolor", {
+    Default = luauware.esp.boxcolor,
+    Title = "Box Color",
+    Callback = function(value)
+        luauware.esp.boxcolor = value
+    end
+})
+espgroup:AddToggle("nameenabled", {
+    Text = "Name ESP",
+    Default = luauware.esp.nameenabled,
+    Callback = function(state)
+        luauware.esp.nameenabled = state
+    end
+}):AddColorPicker("namecolor", {
+    Default = luauware.esp.namecolor,
+    Title = "Name Color",
+    Callback = function(value)
+        luauware.esp.namecolor = value
+    end
+})
+espgroup:AddToggle("distanceenabled", {
+    Text = "Distance ESP",
+    Default = luauware.esp.distanceenabled,
+    Callback = function(state)
+        luauware.esp.distanceenabled = state
+    end
+}):AddColorPicker("distancecolor", {
+    Default = luauware.esp.distancecolor,
+    Title = "Distance Color",
+    Callback = function(value)
+        luauware.esp.distancecolor = value
+    end
+})
+espgroup:AddToggle("tracerenabled", {
+    Text = "Tracer ESP",
+    Default = luauware.esp.tracerenabled,
+    Callback = function(state)
+        luauware.esp.tracerenabled = state
+    end
+}):AddColorPicker("tracercolor", {
+    Default = luauware.esp.tracercolor,
+    Title = "Tracer Color",
+    Callback = function(value)
+        luauware.esp.tracercolor = value
+    end
+})
+espgroup:AddDropdown("tracermode", {
+    Values = { "From Bottom", "From Mouse" },
+    Default = luauware.esp.tracermode,
+    Text = "Tracer Mode",
+    Callback = function(val)
+        luauware.esp.tracermode = val
+    end
+})
+espgroup:AddToggle("healthbar", {
+    Text = "Health Bar ESP",
+    Default = luauware.esp.healthbar,
+    Callback = function(state)
+        luauware.esp.healthbar = state
+    end
+}):AddColorPicker("healthbarcolor", {
+    Default = luauware.esp.healthbarcolor,
+    Title = "Health Bar Color",
+    Callback = function(value)
+        luauware.esp.healthbarcolor = value
+    end
+})
+
+local miscgroup = tabs.misc:AddLeftGroupbox("Miscellaneous")
+miscgroup:AddToggle("cframeenabled", {
+    Text = "Enable CFrame",
+    Default = luauware.cframe.enabled,
+    Callback = function(state)
+        luauware.cframe.enabled = state
+    end
+})
+miscgroup:AddInput("cframevalue", {
+    Text = "CFrame Speed",
+    Default = tostring(luauware.cframe.value),
+    Numeric = true,
+    Finished = true,
+    Callback = function(val)
+        local num = tonumber(val)
+        if num then
+            luauware.cframe.value = num
+        end
+    end
+})
+miscgroup:AddToggle("csyncenabled", {
+    Text = "Enable CSync",
+    Default = luauware.csync.enabled,
+    Callback = function(state)
+        luauware.csync.enabled = state
+    end
+})
+miscgroup:AddDropdown("csynctype", {
+    Values = { "Orbit", "Random", "Spiral", "Spherical", "Attach" },
+    Default = luauware.csync.type,
+    Text = "CSync Type",
+    Callback = function(val)
+        luauware.csync.type = val
+    end
+})
+miscgroup:AddSlider("csyncdistance", {
+    Text = "Distance",
+    Min = 0,
+    Max = 100,
+    Default = luauware.csync.distance,
+    Suffix = "",
+    Decimals = 1,
+    Callback = function(val)
+        luauware.csync.distance = val
+    end
+})
+miscgroup:AddSlider("csyncheight", {
+    Text = "Height",
+    Min = 0,
+    Max = 100,
+    Default = luauware.csync.height,
+    Suffix = "",
+    Decimals = 1,
+    Callback = function(val)
+        luauware.csync.height = val
+    end
+})
+miscgroup:AddSlider("csyncspeed", {
+    Text = "Speed",
+    Min = 0,
+    Max = 100,
+    Default = luauware.csync.speed,
+    Suffix = "",
+    Decimals = 1,
+    Callback = function(val)
+        luauware.csync.speed = val
+    end
+})
+miscgroup:AddSlider("csyncrandomamount", {
+    Text = "Random Amount",
+    Min = 0,
+    Max = 100,
+    Default = luauware.csync.randomamount,
+    Suffix = "",
+    Decimals = 1,
+    Callback = function(val)
+        luauware.csync.randomamount = val
+    end
+})
+miscgroup:AddToggle("bulletteleport", {
+    Text = "Enable BulletTp",
+    Default = luauware.bulletteleport.enabled,
+    Callback = function(state)
+        luauware.bulletteleport.enabled = state
+    end
+})
+miscgroup:AddInput("bulletteleportvalue", {
+    Text = "BulletTp Distance",
+    Default = tostring(luauware.bulletteleport.value),
+    Numeric = true,
+    Finished = true,
+    Callback = function(val)
+        local num = tonumber(val)
+        if num then
+            luauware.bulletteleport.value = num
+        end
+    end
+})
+miscgroup:AddToggle("autoshoot", {
+    Text = "Enable Autoshoot",
+    Default = luauware.autoshoot.enabled,
+    Callback = function(state)
+        luauware.autoshoot.enabled = state
+    end
+})
+miscgroup:AddToggle("fly", {
+    Text = "Enable Fly",
+    Default = luauware.fly.enabled,
+    Callback = function(state)
+        luauware.fly.enabled = state
+        local character = localplayer.Character
+        if character then
+            managefly(character, state)
+        end
+    end
+})
+miscgroup:AddSlider("flyspeed", {
+    Text = "Fly Speed",
+    Min = 10,
+    Max = 200,
+    Default = luauware.fly.speed,
+    Suffix = "",
+    Decimals = 1,
+    Callback = function(val)
+        luauware.fly.speed = val
+    end
+})
+miscgroup:AddToggle("walkspeed", {
+    Text = "Enable Walkspeed",
+    Default = luauware.walkspeed.enabled,
+    Callback = function(state)
+        luauware.walkspeed.enabled = state
+    end
+})
+miscgroup:AddSlider("walkspeedvalue", {
+    Text = "Walkspeed",
+    Min = 16,
+    Max = 100,
+    Default = luauware.walkspeed.value,
+    Suffix = "",
+    Decimals = 1,
+    Callback = function(val)
+        luauware.walkspeed.value = val
+    end
+})
+miscgroup:AddToggle("jumppower", {
+    Text = "Enable Jumppower",
+    Default = luauware.jumppower.enabled,
+    Callback = function(state)
+        luauware.jumppower.enabled = state
+    end
+})
+miscgroup:AddSlider("jumppowervalue", {
+    Text = "Jumppower",
+    Min = 50,
+    Max = 200,
+    Default = luauware.jumppower.value,
+    Suffix = "",
+    Decimals = 1,
+    Callback = function(val)
+        luauware.jumppower.value = val
+    end
+})
+
+local settingsgroup = tabs.settings:AddLeftGroupbox("Settings")
+settingsgroup:AddButton("Unload", function()
+    library:Unload()
+end)
+settingsgroup:AddLabel("Menu Bind"):AddKeyPicker("menukeybind", {
+    Default = "RightShift",
+    NoUI = true,
+    Text = "Menu Keybind"
+})
+
+library.ToggleKeybind = Enum.KeyCode.RightShift
+thememanager:SetLibrary(library)
+savemanager:SetLibrary(library)
+savemanager:IgnoreThemeSettings()
+savemanager:SetIgnoreIndexes({ "menukeybind" })
+thememanager:SetFolder("luauware")
+savemanager:SetFolder("luauware/configs")
+savemanager:BuildConfigSection(tabs.settings)
+thememanager:ApplyToTab(tabs.settings)
+savemanager:LoadAutoloadConfig()
+
+library:OnUnload(function()
+end)
