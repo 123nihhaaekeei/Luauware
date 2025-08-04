@@ -3,7 +3,7 @@ why is luauware special?
 
 #1 it taps and isnt skidded
 #2 its a another scripts remake
-#3 open sourced
+#3 not a bad script
 #4 fully free
 #5 hits all shots
 #6 almost no bugs
